@@ -1,5 +1,7 @@
 # DAFS65
 
+(just started, nothing here, go elsewhere ;)
+
 DAFS65 is a simple data(base) filesystem for 6502. It's prototyped for ORIC ATMOS to enable simple C-programs to have an resemblence of file access.
 
 ## Design goals

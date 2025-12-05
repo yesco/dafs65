@@ -1,0 +1,28 @@
+# build a DSK for meteoric
+
+# address to load "source" files
+# TODO: limit to 7K
+
+export HICHARSET=38912 # 0x9800
+
+
+( \
+
+  cat parse-renamed.tap ; \
+  cat meteoric-wide.pnm.tap ; \
+
+  # source files to add on disk
+  ../bin/mktap ../mktap.c $HICHARSET ; \
+
+
+) > meteoric.tap
+
+../bin/tap2dsk -i"VIEWHIRES:DIR" -n"MeteoriC" meteoric.tap meteoric.dsk
+cp meteoric.dsk meteoric.tap.dsk
+
+../bin/old2mfm meteoric.dsk
+
+ls -l meteoric*
+
+cp meteoric.dsk meteoric.tap.dsk ~/ORIC
+
