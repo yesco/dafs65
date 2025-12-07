@@ -1,6 +1,20 @@
 ; --- TTY driver ------------------------------------------------------------
 
+.zeropage
+
+cursorx:          .res 1
+cursory:          .res 1
+dma:              .res 2     ; current DMA
+
 .data
+keypress_bitfield:      .res 8     ; stores which keys are pressed
+pending_key:            .res 1     ; ASCII code of pending keypress
+shift_pressed:          .res 1     ; top bit set if shift pressed
+ctrl_pressed:           .res 1     ; top bit set if ctrl pressed
+const_counter:          .res 1     ; number of consts until next key scan
+screen_style:           .res 1     ; top bit set if inverse video
+
+
 .global drvtop
 ; This must point at the _last_ driver.
 drvtop: .word drv_TTY

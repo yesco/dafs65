@@ -1,6 +1,7 @@
-;;; TODO:
-BIOS_SECTOR_COUNT=
-BIOS_LOAD_ADDR=
+;;; TODO: I guess this is loading the residental
+;;;   part of OS?
+BIOS_SECTOR_COUNT= 4
+BIOS_LOAD_ADDR= $400
 
 
 ; CP/M-65 Copyright © 2023 David Given
@@ -100,26 +101,42 @@ VIA_PB_DAV_IN   = 1<<7
 
 ; --- Zero page -------------------------------------------------------------
 
-ZEROPAGE
+.zeropage
 
-.global ptr
-.global ptr1
 ptr:              .res 2
 ptr1:             .res 2
-cursorx:          .res 1
-cursory:          .res 1
-dma:              .res 2     ; current DMA
+
+.code
 
 ; --- Bootloader code -------------------------------------------------------
 
 /* The Oric boot process is a bit complicated due to there being two different
  * disk systems we need to support. */
 
-;;; TODO:
-;.segment "sector1", "ax"
-sector1:        
+
+
+
+;;; ==================================================
+;;;                 J A S M I N 
+
 
 ; Jasmin will load this at $0400.
+
+
+;.segment "sector1", "ax"
+
+.org $0400
+
+sector1:        
+
+
+;;; Only for debug disk, cannot have when run/boot!
+;
+SHOWNAMES=1
+
+.ifdef SHOWNAMES
+.byte "JASMIN>>>"
+.endif
 
     jmp jasmin_start
 
@@ -231,53 +248,97 @@ jasmin_start:
     lda #JFDC_ID
     jmp _start
 
-;;; TODO:
+.ifdef SHOWNAMES
+.byte "<<<JASMIN"
+.endif
+
+.res $500-*
+
+
+;;;                  J A S M I N 
+;;; ==================================================
+;;;               M I C R O D I S K
+
+
+
 
 ;.segment "sector2", "ax"
+.org $0400
 sector2:        
 
-; This is the Microdisc boot sector. It can load at a variety of addresses, for
-; maximum inconvenience. After loading, we relocate to $9800, which is known to be
-; unused (it's in the highres screen area).
+.ifdef SHOWNAMES
+.byte "MICRODISK>>>"
+.endif
+
+;;; TODO:
+
+; This is the Microdisc boot sector. It can load at a variety of
+; addresses, for maximum inconvenience. After loading, we relocate to
+; $9800, which is known to be unused (it's in the highres screen
+; area).
 
 ; These literal bytes go before the code itself:
+
+;;; TODO(jsk):  (what are they?)
 
     .byte $00, $00, $FF, $00, $D0, $9F, $D0, $9F
     .byte $02, $B9, $01, $00, $FF, $00, $00, $B9
     .byte $E4, $B9, $00, $00, $E6, $12, $00
 
+;;; boot: somehow microcode loads us anywhere?
+
+        ;; jsk
+        lda #'A'
+        sta SCREEN+0
+
     sei
-    lda #$60
+;;; To figure out our dynamically loaded address
+;;; we do an JSR and pick it off the stack after return!
+    lda #$60                    ; RTS
     sta ptr                     ; place an RTS in zero page
     jsr ptr                     ; call it
+
+;;; Lol: a dummy label (by cpm)
 return:
 
     tsx
     dex
     clc
-    lda $0100, x               ; get low byte
+    lda $0100, x                ; get low byte
     sbc #(return - sector2 - 2) ; adjust to beginning of sector
     sta ptr+0
+
     lda $0101, x               ; get high byte
     sbc #0
     sta ptr+1                   ; ptr points to code
 
     ; Copy 256 bytes.
-
     ldy #0
-
-;    zloop
 :       
         lda (ptr), y
         sta sector2, y
         iny
+    bne :-
 
-;    zuntil eq
-     bne :-
+        ;; Now wew jump to the code we just copied!
+        ;; (.org made this address compile right, it's just
+        ;;  in wrong place in memory - relocate!)
+        jmp sector2_start
 
-    jmp sector2_start
 
 sector2_start:
+
+        ;; JSK
+        lda #'B'
+        sta SCREEN+1
+
+
+;;; TODO: make it load my main "program"!
+
+.ifdef LOAD_BIOS
+
+;;; TODO: I guess this is turning off ATMOS BASIC ROM?
+
     /* Turn off the EPROM, exposing RAM. */
 
     lda #MFDC_Flag_Side0        ; EPROM off, FDC interrupts off
@@ -296,46 +357,72 @@ sector2_start:
         stx MFDC_sector_register    ; sector to read
 
         /* Do the read. */
-
         lda #MCMD_ReadSector
         sta MFDC_command_register
 
         ldy #FLOPPY_DELAY
-;        zrepeat
 @delay:
             nop
             nop
             dey
-;        zuntil eq
-         bne @delay
+        bne @delay
 
         ldy #0
-;        zrepeat
 @next:
-;            zrepeat
 @wait:
-                lda MFDC_drq
-
-;            zuntil pl
-             bmi @wait
+        lda MFDC_drq
+        bmi @wait
 
             lda MFDC_data
             sta (ptr), y
             iny
-;        zuntil eq
-         bne @next
+        bne @next
 
         /* Advance to next sector. */
-
         inx
         inc ptr+1
         cpx #4 + BIOS_SECTOR_COUNT
 
-;    zuntil eq
      bne @nextsector
 
+.endif ; LOAD_BIOS
+
     lda #MFDC_ID
+
+;;; START is whatever wwas loaded $501 ??? if TAP file basic!
     jmp _start
+
+
+;;; TODO: move to OS "bios" ???
+;;; jsk: dummy start and HALT
+
+SCREEN= $bb80
+
+_start: 
+        lda #'C'
+        sta SCREEN+2
+
+halt:   
+        lda #'H'
+        sta SCREEN+3
+        jmp halt
+
+.ifdef SHOWNAMES
+.byte "<<<MICRODISK"
+.endif
+
+.res $500-*
+
+
+
+
+;;;               M I C R O D I S K
+;;; ==================================================
+;;;                  J A S M I N 
+
+
+
+
 
 ;;; TODO: 
 ;.segment "sector3", "ax"
@@ -360,6 +447,14 @@ sector3:
     .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00  ; ................
     .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00  ; ................
     .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00  ; ................
+
+
+
+
+
+
+
+
 
 ; --- Initialisation code ---------------------------------------------------
 
@@ -1071,22 +1166,16 @@ print_hex4_number:
 ;define_dpb dpb, 2844, 2048, 64, 34
 ;define_dph dph, dpb
 
-.bss
+.data
 
-bss_bottom:
-current_bank:           .res 1     ; which memory bank is selected
-requested_cpm_sector:   .res 1     ; CP/M sector requested by user
-requested_track:        .res 1     ; track requested by user
-buffered_host_sector:   .res 1     ; host sector in buffer
-buffered_track:         .res 1     ; track in buffer
-buffer_dirty:           .res 1     ; top bit set if the buffer was modified
-directory_buffer:       .res 128   ; used by the BDOS
-keypress_bitfield:      .res 8     ; stores which keys are pressed
-pending_key:            .res 1     ; ASCII code of pending keypress
-shift_pressed:          .res 1     ; top bit set if shift pressed
-ctrl_pressed:           .res 1     ; top bit set if ctrl pressed
-const_counter:          .res 1     ; number of consts until next key scan
-screen_style:           .res 1     ; top bit set if inverse video
+;bss_bottom:
+;current_bank:           .res 1     ; which memory bank is selected
+;requested_cpm_sector:   .res 1     ; CP/M sector requested by user
+;requested_track:        .res 1     ; track requested by user
+;buffered_host_sector:   .res 1     ; host sector in buffer
+;buffered_track:         .res 1     ; track in buffer
+;buffer_dirty:           .res 1     ; top bit set if the buffer was modified
+;directory_buffer:       .res 128   ; used by the BDOS
 bss_top:
 
 ;.global directory_buffer
