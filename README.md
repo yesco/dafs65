@@ -39,7 +39,6 @@ Specifically:
 - Efficiency in updates on physical disk
 - Not readable by SEDORIC or other operating systems!
 
-
 ## Why not other solutions
 
 There are many variants of storage systems, each have it's own quirks or limitations.
@@ -70,9 +69,21 @@ Operating systems:
 
 For something to work on all platforms it seems reasonable to be based on DSK-format (possibly converted to m2m - not clear if this is required?). Bootable DSKs have provision for support by the most hardware and emulator solutions.
 
+## Inspired by
+
+It's based on ideas and some asm code of FloppyBuilder for booting a floppy from the OSDK (ORIC SDK C-compiler). We also, initially, use various OSDK disk and tape utilities.
+
 ## Utilities
 
 - tap2dsk (from OSDK)
 - old2mfm (from OSDK)
-- mktap
+- mktap (jsk): mktap FIL startaddr > FIL.tap
+
+# References
+
+- How are DSK files stored - https://wiki.defence-force.org/doku.php?id=oric:hardware:dsk_disk_format#:~:text=all%20data%20of%20the%20first,with%20a%20256%2Dbyte%20header:
+- cpm-86 oric DSK boot-code: jasmine+microdisk - https://github.com/davidgiven/cpm65/blob/master/src/arch/oric/oric.S
+
+
+
 
