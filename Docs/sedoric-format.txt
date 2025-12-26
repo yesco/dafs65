@@ -1,0 +1,60 @@
+The "SEDORIC A NU" document might help with much of the details but here is a bit of help on the structure of sectors 2 & 3 of track $14 (all values in hexadecimal below where each XX represents a value between 00 & FF inclusively).
+
+byte
+number value purpose
+00 FF to indicate a SEDORIC-formatted disk
+01 00 unused but usually 00
+02 - 03 XXXX number of free sectors on disk
+04 - 05 XXXX number of files on disk
+06 XX number of tracks per side, eg 50
+07 XX number of sectors per track, eg 11
+08 XX number of sectors making up DIR, at least 01
+09 XX bit 7 is 0 for single-sided disk, 1 for double-sided disk, eg D0 which usually (but not necessarily) derives from the number of tracks per side
+0A XX disk format type, eg 00 for Master, FF for slave - others are user-defined
+0B - 0F 00 unused but usually 00
+10 - FF XX disk bitmap (FAT), each byte here represents a unique set of 8 individual sectors - 00 means that all 8 sectors are allocated whereas,at the other extreme, FF means that all 8 sectors are free
+
+The DIR (list of files with location information) is in sectors 04, 07, 0A, 0D, 10 of track 14 and then any free sector which is allocated dynamically to the DIR as required by SEDORIC. However, it looks like you don't need to consider this aspect. You probably don't need to concern yourself with sector 3 on track 14 either.
+
+-  https://forum.defence-force.org/viewtopic.php?p=33307#p33307
+
+----------------
+
+Re: "UNKNOW'N FORMAT"
+Post by Ray030471 » Tue Sep 30, 2025 11:55 pm
+
+Yes, the fundamental disk format of floppy builder does lend itself to slight modification.
+
+The relevant sectors are on track 20. The disk bitmap (FAT) is on sectors 2 & 3 and the actual directory (of files) starts at sector 4 (which can hold basic information for up to 15 files). Further directory sectors on that track would be 7, 10, 13 & 16, each being able to cater for up to 15 files.
+Each file has a look-up table which requires at least one sector and then as many sectors as required to store the actual data.
+
+However, as far as I can determine (look at the SEDORIC disassembly) BACKUP only requires that sector 2 on track 20 has the following contents
+byte number value
+$00 $FF
+$06 number of tracks per side, eg $50 for 80-track disk
+$07 number of sectors per track, eg $11 for 17 sectors per track
+$09 bit 7 set for 2-sided disk otherwise 1-sided disk (usually $D0 for 2-sided, 80-track disk)
+
+As far as I can see,t BACKUP doesn't check to see whether the target disk has the same number of sectors, tracks & sides (parameters) as the source disk but an error will occur if the target disk parameters are too small. However, choosing "Format TARGET disc (Y/N):" will sort this out.
+
+I hope that this helps you to complete this task.
+
+----------------
+
+Re: "UNKNOW'N FORMAT"
+Post by Dbug » Tue Sep 30, 2025 1:58 am
+
+Ok, so basically the floppy disk to have a bootable set of sectors at the start of the disk, and a valid "directory/fat" at the center of the disk.
+
+I guess I could update FloppyBuilder to somehow allow reserving this sector 20/2 to be used to simulate Sedoric.
+
+What would be the minimum data required to get DIR to work and report information indicating some stuff like a floppy name and maybe a single file that can show a short text like "This is a FloppyBuilder disk"?
+
+
+
+BACKUP calls routine XPMAP for each referenced drive/disk. XMAP loads the first disk bitmap sector (track $14, sector $02) and checks to see if the first byte is $FF which indicates a SEDORIC formatted disk. This is not foolproof as any disk could have that byte in that location. However, if that byte in that disk location is not $FF then that disk does not have a SEDORIC format.
+So, you could try and use NIBBLE to write the correct value, $FF, to the correct place in your Floppy Builder disk and see if BACKUP then works.
+
+
+- https://forum.defence-force.org/viewtopic.php?p=33303#p33303
+

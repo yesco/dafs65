@@ -131,8 +131,7 @@ sector1:
 
 
 ;;; Only for debug disk, cannot have when run/boot!
-;
-SHOWNAMES=1
+;SHOWNAMES=1
 
 .ifdef SHOWNAMES
 .byte "JASMIN>>>"
