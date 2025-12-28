@@ -3,6 +3,10 @@
 // (C) 2025 Jonas S Karlsson, jsk@yesco.org
 //
 
+// This is a simulator in C simulating how I'd want
+// the it to run on an actual machine. The format
+// should be simple enough to be implementable in ASM.
+
 // This is meant as a simple Bigtable:ish flexible filesystem
 // for ORIC ATMOS using DSK-files.
 // 

@@ -48,6 +48,8 @@ int main(int argc,char *argv[])
     printf("%s is not an old disk image\n",argv[1]);
     exit(EXIT_FAILURE);
   }
+  // TODO: endian assumptions may cause problems?
+  // (seems to assume big endian)
   fileread(&sides,1,sizeof(uint32_t),fd);
   fileread(&tracks,1,sizeof(uint32_t),fd);
   fileread(&sectors,1,sizeof(uint32_t),fd);
