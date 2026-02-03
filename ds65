@@ -1,0 +1,1 @@
+cl65 -r -O -t sim6502 ds.c -o ds.sim && ls -l ds.* && echo && sim65 -c ds.sim 

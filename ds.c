@@ -7,11 +7,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <ctype.h>
+
+// (- 6121 5212) 909 bytes saved - no printf/etc
+//
+#define PRINT
+
+#ifdef PRINT
+  #include <stdio.h>
+//  #include <ctype.h>
+#endif // PRINT
 
 typedef uint16_t word;
 
-// could also be called str2pascal?
+// almost a str2pascal?
 char* memdup(char* m, word len) {
   char* r;
   if (len>255) return NULL;
@@ -27,12 +35,20 @@ char* memdup(char* m, word len) {
 typedef char* pstr;
 typedef pstr handle;
 
+// to be used by all
+static char key[256]= {0};
+
+void clearkey() {
+  memset(key, 0, sizeof(key));
+}
+
 //   maybe use pascal strings? lol
 handle oshandle(char* k, char* c, word ts) {
-  char h[256]= {0}, * p= h;
-  int len;
+  char * p= key;
   
   if (strlen(k)+strlen(c)+2 > 255) return NULL;
+
+  clearkey();
 
   // copy key, zero terminate
   while(*k) *p++= *k++;
@@ -46,7 +62,7 @@ handle oshandle(char* k, char* c, word ts) {
   *p++= ts >> 8;
   *p++= ts & 0xff;
 
-  return memdup(h, p-h);
+  return memdup(key, p-key);
 }
 
 typedef char PageRef[4];
@@ -96,8 +112,16 @@ Page page = {"NEXT", "UBER",
     }
 };
   
+void applykey(char* k, char* p) {
+}
+
+#ifndef PRINT
+void printpage(Page* p) {}
+#else
+
 void printchar(char c) {
-  if (isprint(c)) putchar(c);
+//  if (isprint(c)) putchar(c); // cc65 is wrong...
+  if (c>=' ' && c<127) putchar(c);
   else if (!c) printf("\\0");
   else if (c=='"') printf("\\\"");
   else printf("\\x%02x", c);
@@ -106,9 +130,6 @@ void printchar(char c) {
 void printkey(char* k) {
   char len= *k;
   while(len--) printchar(*++k);
-}
-
-void applykey(char* key, char* p) {
 }
 
 void printentry(char* k, char* p) {
@@ -142,12 +163,15 @@ void printentry(char* k, char* p) {
 
 void printpage(Page *page) {
   char * p= (void*)page, * o= p+255;
-  char k[256]= {0}; // key for iteration
 
   printf("-- Page: next=%.4s up=%.4s free=%d n=%d\n",
          page->next, page->up, page->ofree, page->n);
-  while(*o) printentry(k, p+*o--);
+
+  clearkey();
+  while(*o) printentry(key, p+*o--);
 }
+#endif // PRINT
+
 
 void pagesplit(Page *p, char i, char o, handle h) {
   // TODO: does this return new page?
@@ -179,6 +203,9 @@ char pageindex(Page *page, char* key, handle h) {
   char * p= (void*)page;
   char i= 0, o;
 
+  // TODO: right?
+  clearkey();
+
   while((o= p[--i])) {
     // once we get a pagekey >= that's the insert point
     if (keygt(p+o, h)) break;
@@ -194,11 +221,11 @@ char hprefixlen(handle h, char* key, char* o) {
   return 0;
 }
 
+
 // TODO: error code/
 void osput(handle h, char t, char* d, word len) {
   // TODO: find right page using index
   Page * page= ospage(h);
-  char key[256]= {0};
   char i= pageindex(page, key, h), j;
   char o= page->ofree, w= o;
   char * p= (void*)page;
@@ -240,9 +267,12 @@ word osget(handle h, word offset, char* buff, word len) {
 }
 
 int main() {
-  assert(sizeof(Page)==256);
   char* h= oshandle("/foo", "", 4711);
+
+  assert(sizeof(Page)==256);
+
 //  osput(h, 1, "FOO", 3);
+
   free(h);
   printpage((void*)&page);
   return 0;
