@@ -1,0 +1,111 @@
+DAFS: 
+
+Playing with example data for how to store the object data and navigation nodes.
+
+-- bootpages
+-- index pages
+
+-        a single dash is a page start
+
+
+* every page has a next pointer
+* the first key is "full"
+* to find where something goes:
+  - look at first key of every page
+  - the page before the page with key >
+* so a directory associates a page with
+  what is not stored (> next page key!)
+* good for append
+* if not fits on current page:
+  - insert right position on page
+  - move everything down after
+  - spill over to another page
+* insert is costly in middle of page
+  - keep list of offsets instead?
+  - keep offsets list growing down from end
+  - pointing to increasing keys
+  - one byte each offset each
+  - 0 is end
+  - add new record in free space arena allocator
+    (going forward in 
+  - when time to split    
+* maxitems (/ (- 256 24) 10) = 23, lol (24=23+1)
+  (so reserve 16 bytes at end of page at start?)
+  max 16 keys on one page
+  or no limit as long as fits?
+* if insert at end of page, just link in extra page
+  no moving! (good for serial keys load/add)
+* how to get it such that we don't keep pushing
+  the same data down, like insert
+  /a/002/42 .../43 .../44 (we keep pushing /a/003)
+* split after last logical insert item
+* at split, do copy in order
+* assume not much get deleted (append-mostly)
+* can we insert a "next page" marker in the middle?
+* assuming we add it to
+* split into three pages? lol (explosion?)
+* first page has one empty key so can insert first
+* "" == volum data (name?)
+
+* updirectory directory (page never moves)
+* when splitting start with largest/last new page first
+* and link them in, then writing and linking it in
+  by overwriting "first" page (which is being split)
+  will link in all new pages, if it doesn't get written
+  no inconsistency!
+
+===
+-
+  ! nextpointer uppointer nkeys freeoffset freespace
+ "" - empty key first!
+  foo
+  root
+  tuple
+  /a/crap
+  /a/001
+  /a/002
+  /a/003
+  ...
+-
+  ! nextpointer uppointer nkeys freeoffset freespace
+  /a/004
+  /a/005
+  /a/008
+  /a/013
+  ...
+-
+  ! nextpointer uppointer nkeys freeoffset freespace
+  /a/017
+  /a/027
+  /a/032
+  /a/0332
+  ...
+===
+- 
+  ! nextpointer uppointer nkeys freeoffset freespace
+  /ab/fish
+  /ab/gurka/cucumber
+  /abc/def/ghi
+  /abc/foo
+  ...
+- 
+  ! nextpointer uppointer nkeys freeoffset freespace
+  /abc/foo/bar
+  /abc/foo/bar/fie
+  /abc/ghi/jkl
+  ...
+- 
+  ! nextpointer uppointer nkeys freeoffset freespace
+  /abc/ghi/opq
+  ...
+-
+
+Directory, truncated to shortest diff from previous high key
+=
+  /a/004
+= /ab/fish
+  /abc/foo
+= /abc/foo/bar
+  /abc/ghi/jkl
+= /abc/g hi/jmn
+

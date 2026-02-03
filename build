@@ -1,0 +1,14 @@
+rm disk.333 2> /dev/null
+
+ca65 disk.asm
+ld65 -C disk.cfg disk.o -o disk.333
+echo
+hexdump -C disk.333
+ls -l disk.*
+
+cp disk.333 disk.dsk
+./bin/old2mfm disk.dsk
+
+cp disk.dsk ~/ORIC/disk.dsk
+
+
