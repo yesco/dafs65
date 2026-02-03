@@ -25,9 +25,10 @@ char* memdup(char* m, word len) {
 
 // TODO: implement p"foo" notation in compiler?
 typedef char* pstr;
+typedef pstr handle;
 
 //   maybe use pascal strings? lol
-pstr oshandle(char* k, char* c, word ts) {
+handle oshandle(char* k, char* c, word ts) {
   char h[256]= {0}, * p= h;
   int len;
   
@@ -63,15 +64,30 @@ typedef struct Page {
 
 #define PAGE_OFREE_OFFSET offsetof(Page, data)
 Page page = {"NEXT", "UBER",
-  PAGE_OFREE_OFFSET+26, 1,
+  PAGE_OFREE_OFFSET+26+13+14, 1,
   // (- 256 8 2 20) = 226
-  { 0, 15, '/','r','o','w','/','k','e','y',0,
+  {
+    0, 15, '/','r','o','w','/','k','e','y',0,
            'c','o','l',0,
-           0xff,0xff, // < 14
-    1, // t
-    0x06,'f','o','o','b','a','r',0,
+           0xff,0xfd,
+    1, 0x06,'f','o','o','b','a','r',0, 
+    // 26 bytes
+
+    13, 2, 0xff, 0xfe, // only change ts
+    1, 0x06,'F','o','o','b','a','r',0, // one letter
+    // 13 bytes
+
+    10, 5, 'p','p',0,
+           0xff,0xfd,
+    1, 0x05,'C','+','+','-','-',0, 
+    // 14 bytes
+
   },
-  { 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,
+  { 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0,
+    0,
+    0, // +14
+    PAGE_OFREE_OFFSET+26+13,
+    PAGE_OFREE_OFFSET+26,
     PAGE_OFREE_OFFSET
     }
 };
@@ -126,17 +142,25 @@ void printpage(Page *page) {
   while(*o) printentry(k, p+*o--);
 }
 
-void osput(char* h, char t, char* d, word len) {
+// TODO: error code/
+void osput(handle h, char* d, word len) {
   // TODO: find right page using index
   char * p= (void*)&page;
   
   // find right entry of combined key h
 }
 
+// TODO: osappend? lol
+
+// TODO: error code/
+word osget(handle h, word offset, char* buff, word len) {
+  return 0;
+}
+
 int main() {
   assert(sizeof(Page)==256);
   char* h= oshandle("/foo", "", 4711);
-  osput(h, 1, "FOO", 3);
+  //osput(h, 1, "FOO", 3);
   free(h);
   printpage((void*)&page);
   return 0;
